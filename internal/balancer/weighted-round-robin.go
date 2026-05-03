@@ -6,15 +6,15 @@ import (
 )
 
 type WeightedRoundRobin struct {
-	backends []Backend
-	weights  []int
-	counter  atomic.Int64
+	pool    *BackendPool
+	weights []Backend
+	counter atomic.Int64
 }
 
-func NewWeightedRoundRobin(backends []Backend) *WeightedRoundRobin {
+func NewWeightedRoundRobin(pool *BackendPool) *WeightedRoundRobin {
 	var weightedBackends []Backend
 	var weights []int
-	for _, backend := range backends {
+	for _, backend := range pool.GetAllBackends() {
 		weight := backend.Weight
 		if weight <= 0 {
 			weight = 1
@@ -28,19 +28,30 @@ func NewWeightedRoundRobin(backends []Backend) *WeightedRoundRobin {
 	}
 
 	return &WeightedRoundRobin{
-		backends: weightedBackends,
-		weights:  weights,
+		pool:    pool,
+		weights: weightedBackends,
 	}
 }
 
 func (wrr *WeightedRoundRobin) SelectBackend(req *http.Request) *Backend {
-	if len(wrr.backends) == 0 {
+	if len(wrr.weights) == 0 {
 		return nil
 	}
 
-	idx := wrr.counter.Add(1) - 1
-	backend := &wrr.backends[int(idx)%len(wrr.backends)]
-	return backend
+	attempts := len(wrr.weights)
+
+	for i := 0; i < attempts; i++ {
+		idx := wrr.counter.Add(1) - 1
+		backend := &wrr.weights[int(idx)%len(wrr.weights)]
+
+		// Check if this backend is healthy
+		if wrr.pool.IsHealthy(backend.URL) {
+			return backend
+		}
+		// If unhealthy, try next one
+	}
+
+	return nil
 }
 
 func (wrr *WeightedRoundRobin) ReleaseBackend(backend *Backend) {

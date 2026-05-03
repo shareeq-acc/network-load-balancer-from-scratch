@@ -1,10 +1,87 @@
 package balancer
 
-import "net/http"
+import (
+	"net/http"
+	"sync"
+)
 
 type Backend struct {
-	URL    string
-	Weight int
+	URL     string
+	Weight  int
+	Healthy bool
+}
+
+type BackendPool struct {
+	backends         []Backend
+	healthy          map[string]bool
+	consecutiveFails map[string]int
+	mu               sync.RWMutex
+}
+
+func NewBackendPool(backends []Backend) *BackendPool {
+	pool := &BackendPool{
+		backends:         backends,
+		healthy:          make(map[string]bool),
+		consecutiveFails: make(map[string]int),
+	}
+
+	for _, backend := range backends {
+		pool.healthy[backend.URL] = true
+		pool.consecutiveFails[backend.URL] = 0
+	}
+
+	return pool
+}
+
+func (bp *BackendPool) GetHealthyBackends() []Backend {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	var healthyBackends []Backend
+
+	for _, backend := range bp.backends {
+		if bp.healthy[backend.URL] {
+			healthyBackends = append(healthyBackends, backend)
+		}
+	}
+	return healthyBackends
+}
+
+func (bp *BackendPool) MarkHealthy(url string) {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	bp.healthy[url] = true
+	bp.consecutiveFails[url] = 0
+}
+
+func (bp *BackendPool) MarkUnhealthy(url string) {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	bp.healthy[url] = false
+}
+
+func (bp *BackendPool) IsHealthy(url string) bool {
+	bp.mu.RLock()
+	defer bp.mu.RUnlock()
+
+	return bp.healthy[url]
+}
+
+func (bp *BackendPool) GetAllBackends() []Backend {
+	bp.mu.RLock()
+	defer bp.mu.RUnlock()
+
+	return bp.backends
+}
+
+func (bp *BackendPool) IncrementFailures(url string) int {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	bp.consecutiveFails[url]++
+	return bp.consecutiveFails[url]
 }
 
 type LoadBalancer interface {
@@ -12,19 +89,15 @@ type LoadBalancer interface {
 	ReleaseBackend(backend *Backend)
 }
 
-func New(algorithm string, backends []Backend) LoadBalancer {
+func New(algorithm string, pool *BackendPool) LoadBalancer {
 	switch algorithm {
 	case "round-robin":
-		return NewRoundRobin(backends)
-
+		return NewRoundRobin(pool)
 	case "weighted-round-robin":
-		return NewWeightedRoundRobin(backends)
-
+		return NewWeightedRoundRobin(pool)
 	case "least-connections":
-		return NewLeastConnections(backends)
-
+		return NewLeastConnections(pool)
 	default:
-		// Default to round-robin if unknown algorithm
-		return NewRoundRobin(backends)
+		return NewRoundRobin(pool)
 	}
 }

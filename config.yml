@@ -1,4 +1,4 @@
-algorithm: least-connections
+algorithm: round-robin
 
 backends:
 - url: http://localhost:8081

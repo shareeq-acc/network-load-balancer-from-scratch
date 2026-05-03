@@ -6,22 +6,26 @@ import (
 )
 
 type RoundRobin struct {
-	backends []Backend
-	counter  atomic.Int64
+	pool    *BackendPool
+	counter atomic.Int64
 }
 
-func NewRoundRobin(backends []Backend) *RoundRobin {
+func NewRoundRobin(pool *BackendPool) *RoundRobin {
 	return &RoundRobin{
-		backends: backends,
+		pool: pool,
 	}
 }
 
 func (rr *RoundRobin) SelectBackend(req *http.Request) *Backend {
-	if len(rr.backends) == 0 {
+
+	healthyBackends := rr.pool.GetHealthyBackends()
+
+	if len(healthyBackends) == 0 {
 		return nil
 	}
+
 	idx := rr.counter.Add(1) - 1
-	backend := rr.backends[int(idx)%len(rr.backends)]
+	backend := healthyBackends[int(idx)%len(healthyBackends)]
 	return &backend
 }
 

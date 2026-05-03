@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 
 	"github.com/shareeq-acc/load-balancer/internal/balancer"
 	"github.com/shareeq-acc/load-balancer/internal/config"
+	"github.com/shareeq-acc/load-balancer/internal/health"
 )
 
 var lb balancer.LoadBalancer
+var pool *balancer.BackendPool
 
 func main() {
 
@@ -28,7 +31,16 @@ func main() {
 		}
 	}
 
-	lb = balancer.New(cfg.Algorithm, backends)
+	pool = balancer.NewBackendPool(backends)
+	lb = balancer.New(cfg.Algorithm, pool)
+
+	checker := health.NewChecker(
+		pool,
+		5*time.Second, // Check every 5 seconds
+		2*time.Second, // Timeout after 2 seconds
+		3,             // Mark unhealthy after 3 failures
+	)
+	checker.Start()
 
 	http.HandleFunc("/", handleRequest)
 
@@ -62,5 +74,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	log.Printf("Forwarding request to %s", backend.URL)
 	proxy.ServeHTTP(w, r)
+	defer lb.ReleaseBackend(backend)
 
 }
