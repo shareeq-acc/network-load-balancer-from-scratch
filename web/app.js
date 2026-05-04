@@ -237,9 +237,33 @@ function removeServer(s) {
   fetch('/api/servers/remove', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: s.url }),
+    body: JSON.stringify({ url: s.url, stopProcess: true }),
   }).catch(() => {});
   toast('Removed ' + s.name);
+}
+
+// Spin up a new server dynamically
+async function spinUpServer(weight) {
+  try {
+    const response = await fetch('/api/servers/spin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weight: weight || 1 }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      toast('Failed to spin up server: ' + error);
+      return null;
+    }
+    
+    const data = await response.json();
+    toast(`Server spun up: ${data.url}`);
+    return data;
+  } catch (err) {
+    toast('Error spinning up server: ' + err.message);
+    return null;
+  }
 }
 
 function toggleKill(s) {
@@ -556,6 +580,22 @@ document.getElementById('btn-add-server').addEventListener('click', () => {
   document.getElementById('modal-weight').value = '1';
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('modal-url').focus();
+});
+
+document.getElementById('btn-spin-server').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-spin-server');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting...';
+  
+  const data = await spinUpServer(1);
+  
+  if (data && data.url) {
+    // Add the server to the UI
+    addServer(data.url, data.weight || 1, false);
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '⚡ Spin Up Server';
 });
 
 document.getElementById('modal-close').addEventListener('click', () =>

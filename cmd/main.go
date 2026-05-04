@@ -6,13 +6,17 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/shareeq-acc/load-balancer/internal/api"
 	"github.com/shareeq-acc/load-balancer/internal/balancer"
 	"github.com/shareeq-acc/load-balancer/internal/config"
 	"github.com/shareeq-acc/load-balancer/internal/health"
+	"github.com/shareeq-acc/load-balancer/internal/process"
 )
 
 var lb balancer.LoadBalancer
@@ -42,16 +46,30 @@ func main() {
 	// Create load balancer
 	lb = balancer.New(cfg.Algorithm, pool)
 
-	// Create API handler with algorithm change callback
+	// Create process manager for dynamic server spinning
+	procManager := process.NewManager(8081) // Start from port 8081
+	procAdapter := process.NewAdapter(procManager)
+
+	// Create API handler with algorithm change callback and process manager
 	apiHandler = api.NewHandler(pool, cfg.Algorithm, func(newAlgo string) {
 		lbMu.Lock()
 		defer lbMu.Unlock()
 		lb = balancer.New(newAlgo, pool)
-	})
+	}, procAdapter)
 
 	// Start health checker
 	checker := health.NewChecker(pool, 5*time.Second, 2*time.Second, 3)
 	checker.Start()
+
+	// Setup graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		log.Println("\nShutting down gracefully...")
+		procManager.Shutdown()
+		os.Exit(0)
+	}()
 
 	// Log configuration
 	fmt.Println("Load Balancer starting on :8080")
@@ -61,6 +79,7 @@ func main() {
 		fmt.Printf("  [%d] %s (weight: %d)\n", i+1, backend.URL, backend.Weight)
 	}
 	fmt.Println("Health checking enabled")
+	fmt.Println("Dynamic server spinning enabled")
 	fmt.Println("Dashboard available at http://localhost:8080/")
 
 	// API endpoints
@@ -68,6 +87,8 @@ func main() {
 	http.HandleFunc("/api/algorithm", apiHandler.SetAlgorithm)
 	http.HandleFunc("/api/servers/add", apiHandler.AddServer)
 	http.HandleFunc("/api/servers/remove", apiHandler.RemoveServer)
+	http.HandleFunc("/api/servers/spin", apiHandler.SpinUpServer)
+	http.HandleFunc("/api/servers/running", apiHandler.GetRunningServers)
 
 	// Serve static files (dashboard)
 	http.Handle("/", http.FileServer(http.Dir("./web")))
