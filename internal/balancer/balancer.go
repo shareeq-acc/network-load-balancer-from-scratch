@@ -84,6 +84,29 @@ func (bp *BackendPool) IncrementFailures(url string) int {
 	return bp.consecutiveFails[url]
 }
 
+func (bp *BackendPool) AddBackend(backend Backend) {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	bp.backends = append(bp.backends, backend)
+	bp.healthy[backend.URL] = true
+	bp.consecutiveFails[backend.URL] = 0
+}
+
+func (bp *BackendPool) RemoveBackend(url string) {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	for i, b := range bp.backends {
+		if b.URL == url {
+			bp.backends = append(bp.backends[:i], bp.backends[i+1:]...)
+			delete(bp.healthy, url)
+			delete(bp.consecutiveFails, url)
+			return
+		}
+	}
+}
+
 type LoadBalancer interface {
 	SelectBackend(req *http.Request) *Backend
 	ReleaseBackend(backend *Backend)
