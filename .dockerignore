@@ -1,0 +1,28 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+load-balancer
+
+# Test files
+*_test.go
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+DYNAMIC_SERVERS.md
+
+# Scripts
+*.sh
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
