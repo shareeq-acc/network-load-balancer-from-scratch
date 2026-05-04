@@ -298,3 +298,46 @@ func (h *Handler) GetRunningServers(w http.ResponseWriter, r *http.Request) {
 		"servers": servers,
 	})
 }
+
+// UpdateServerWeight updates the weight of an existing backend server
+func (h *Handler) UpdateServerWeight(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch && r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		URL    string `json:"url"`
+		Weight int    `json:"weight"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.URL == "" {
+		http.Error(w, "URL is required", http.StatusBadRequest)
+		return
+	}
+
+	if req.Weight <= 0 {
+		http.Error(w, "Weight must be greater than 0", http.StatusBadRequest)
+		return
+	}
+
+	// Update the backend weight
+	if !h.pool.UpdateBackend(req.URL, req.Weight) {
+		http.Error(w, "Backend not found", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("Backend weight updated: %s (weight: %d)", req.URL, req.Weight)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "updated",
+		"url":    req.URL,
+		"weight": req.Weight,
+	})
+}

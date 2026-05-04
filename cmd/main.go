@@ -89,6 +89,7 @@ func main() {
 	http.HandleFunc("/api/servers/remove", apiHandler.RemoveServer)
 	http.HandleFunc("/api/servers/spin", apiHandler.SpinUpServer)
 	http.HandleFunc("/api/servers/running", apiHandler.GetRunningServers)
+	http.HandleFunc("/api/servers/update-weight", apiHandler.UpdateServerWeight)
 
 	// Serve static files (dashboard)
 	http.Handle("/", http.FileServer(http.Dir("./web")))

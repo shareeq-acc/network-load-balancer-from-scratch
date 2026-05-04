@@ -93,6 +93,19 @@ func (bp *BackendPool) AddBackend(backend Backend) {
 	bp.consecutiveFails[backend.URL] = 0
 }
 
+func (bp *BackendPool) UpdateBackend(url string, weight int) bool {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+
+	for i, b := range bp.backends {
+		if b.URL == url {
+			bp.backends[i].Weight = weight
+			return true
+		}
+	}
+	return false
+}
+
 func (bp *BackendPool) RemoveBackend(url string) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()

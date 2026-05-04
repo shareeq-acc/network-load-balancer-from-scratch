@@ -1,4 +1,7 @@
 // ── State ──────────────────────────────────────────────────────────────────
+// Version: 2.2 - Show port only, added info icon for server details
+let currentServerDetails = null; // Track which server is being viewed
+
 const SERVER_COLORS = [
   { hex: '#38bdf8', r: 56,  g: 189, b: 248 },
   { hex: '#34d399', r: 52,  g: 211, b: 153 },
@@ -105,11 +108,17 @@ function createServerEl(s) {
   el.id = 'srv-' + s.id;
   el.dataset.id = s.id;
   const c = SERVER_COLORS[s.colorIdx];
+  
+  // Extract port from URL
+  const port = s.url.split(':').pop().split('/')[0];
+  
   el.innerHTML = `
     <div class="node-header">
       <span class="node-dot"></span>
       <span class="node-name" title="${s.url}">${s.name}</span>
+      <button class="btn-info-node" id="s${s.id}-infobtn" title="View Details">ℹ️</button>
     </div>
+    <div class="node-port" title="${s.url}">:${port}</div>
     <div class="node-color-bar" style="background:${c.hex}"></div>
     <div class="node-stats-grid">
       <div class="node-stat">
@@ -139,6 +148,10 @@ function createServerEl(s) {
   canvas.appendChild(el);
   makeDraggable(el, s);
 
+  document.getElementById(`s${s.id}-infobtn`).addEventListener('click', e => {
+    e.stopPropagation();
+    openServerDetails(s);
+  });
   document.getElementById(`s${s.id}-killbtn`).addEventListener('click', e => {
     e.stopPropagation();
     toggleKill(s);
@@ -502,6 +515,70 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// ── Server Details Modal ───────────────────────────────────────────────────
+function openServerDetails(s) {
+  currentServerDetails = s;
+  
+  // Populate modal with server data
+  document.getElementById('server-details-title').textContent = s.name + ' Details';
+  document.getElementById('detail-name').textContent = s.name;
+  document.getElementById('detail-url').textContent = s.url;
+  document.getElementById('detail-status').textContent = s.alive ? 'UP' : 'DOWN';
+  document.getElementById('detail-status').style.color = s.alive ? '#22d3a0' : '#ef4444';
+  document.getElementById('detail-weight-input').value = s.weight;
+  document.getElementById('detail-active').textContent = s.activeConn;
+  document.getElementById('detail-total').textContent = s.totalReq;
+  
+  // Update kill button text
+  const killBtn = document.getElementById('detail-kill-btn');
+  killBtn.textContent = s.alive ? 'Kill Server' : 'Revive Server';
+  killBtn.className = s.alive ? 'btn btn-danger' : 'btn btn-primary';
+  
+  // Show modal
+  document.getElementById('server-details-overlay').classList.add('open');
+}
+
+function closeServerDetails() {
+  document.getElementById('server-details-overlay').classList.remove('open');
+  currentServerDetails = null;
+}
+
+function updateServerWeight() {
+  if (!currentServerDetails) return;
+  
+  const newWeight = parseInt(document.getElementById('detail-weight-input').value);
+  if (newWeight < 1 || newWeight > 10) {
+    toast('Weight must be between 1 and 10');
+    return;
+  }
+  
+  // Update the backend using the new endpoint
+  fetch('/api/servers/update-weight', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: currentServerDetails.url, weight: newWeight }),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Failed to update weight');
+    }
+    return response.json();
+  })
+  .then(() => {
+    // Update local state
+    currentServerDetails.weight = newWeight;
+    
+    // Update the UI
+    const weightEl = document.getElementById(`s${currentServerDetails.id}-weight`);
+    if (weightEl) weightEl.textContent = newWeight;
+    
+    toast(`Weight updated to ${newWeight}`);
+  })
+  .catch(err => {
+    toast('Failed to update weight: ' + err.message);
+  });
+}
+
 // ── Sync health from backend ───────────────────────────────────────────────
 function syncFromBackend() {
   fetch('/api/state').then(r => r.json()).then(state => {
@@ -617,6 +694,34 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 
 document.getElementById('modal-url').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('modal-confirm').click();
+});
+
+// Server details modal events
+document.getElementById('server-details-close').addEventListener('click', closeServerDetails);
+
+document.getElementById('server-details-overlay').addEventListener('click', e => {
+  if (e.target.id === 'server-details-overlay') closeServerDetails();
+});
+
+document.getElementById('detail-weight-save').addEventListener('click', updateServerWeight);
+
+document.getElementById('detail-weight-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') updateServerWeight();
+});
+
+document.getElementById('detail-kill-btn').addEventListener('click', () => {
+  if (currentServerDetails) {
+    toggleKill(currentServerDetails);
+    // Update the modal
+    openServerDetails(currentServerDetails);
+  }
+});
+
+document.getElementById('detail-remove-btn').addEventListener('click', () => {
+  if (currentServerDetails) {
+    removeServer(currentServerDetails);
+    closeServerDetails();
+  }
 });
 
 window.addEventListener('resize', () => {
