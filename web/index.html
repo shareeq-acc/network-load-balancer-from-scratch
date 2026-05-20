@@ -5,22 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Load Balancer Simulator</title>
   <style>
+    /* ── Design tokens ──────────────────────────────────────────────── */
     :root {
-      --bg: #07071a;
-      --surface: #0e0e2a;
-      --surface2: #14143a;
-      --border: rgba(120,120,255,0.12);
-      --accent: #6366f1;
-      --accent2: #818cf8;
-      --success: #22d3a0;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --text: #e2e8f0;
-      --muted: #64748b;
-      --font: 'Segoe UI', system-ui, sans-serif;
+      --bg:       #0d0d1f;
+      --surface:  #12122a;
+      --surface2: #181830;
+      --surface3: #1e1e3c;
+      --border:   rgba(255,255,255,0.07);
+      --border2:  rgba(255,255,255,0.04);
+      --accent:   #6366f1;
+      --accent-h: #4f46e5;
+      --accent-bg:rgba(99,102,241,0.12);
+      --success:  #10b981;
+      --danger:   #ef4444;
+      --text:     #f1f5f9;
+      --text2:    #94a3b8;
+      --muted:    #4b5563;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: var(--font);
@@ -30,592 +33,822 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Header ── */
+    /* ── Header ─────────────────────────────────────────────────────── */
     header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 20px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; height: 48px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-      z-index: 10;
+      flex-shrink: 0; z-index: 10;
     }
-    header .logo {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, var(--accent), #a78bfa);
-      border-radius: 8px;
+    .hdr-logo {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
-    }
-    header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.3px; }
-    header .badge {
-      margin-left: auto;
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      background: rgba(99,102,241,0.15);
-      color: var(--accent2);
-      border: 1px solid rgba(99,102,241,0.3);
-    }
-
-    /* ── Layout ── */
-    .workspace {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    /* ── Sidebar ── */
-    aside {
-      width: 240px;
       flex-shrink: 0;
+    }
+    .hdr-logo svg { width: 15px; height: 15px; }
+    header h1 { font-size: 14px; font-weight: 600; letter-spacing: -0.1px; }
+    .hdr-actions { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+    .hdr-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 11px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent; color: var(--text2);
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all 0.13s; white-space: nowrap; font-family: var(--font);
+    }
+    .hdr-btn:hover { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.12); }
+    .hdr-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .hdr-icon-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.13s;
+    }
+    .hdr-icon-btn:hover { background: var(--surface2); color: var(--text); }
+    .hdr-icon-btn svg { width: 14px; height: 14px; }
+
+    /* ── Workspace ──────────────────────────────────────────────────── */
+    .workspace { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+    /* ── Left Panel ─────────────────────────────────────────────────── */
+    .left-panel {
+      width: 208px; flex-shrink: 0;
       background: var(--surface);
       border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      padding: 16px 12px;
-      gap: 20px;
+      display: flex; flex-direction: column; overflow: hidden;
     }
+    .lp-body { flex: 1; overflow-y: auto; padding: 14px 10px; }
+    .sec-title {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--text); margin-bottom: 3px;
+    }
+    .sec-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
 
-    .section-title {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    /* Algorithm */
-    .algo-btn {
-      display: flex; align-items: center; gap: 8px;
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 7px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--muted);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-      margin-bottom: 4px;
-    }
-    .algo-btn .dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--muted);
-      flex-shrink: 0;
-      transition: background 0.15s;
-    }
-    .algo-btn:hover { background: var(--surface2); color: var(--text); }
-    .algo-btn.active {
-      background: rgba(99,102,241,0.15);
-      border-color: rgba(99,102,241,0.4);
-      color: var(--accent2);
-    }
-    .algo-btn.active .dot { background: var(--accent2); }
-
-    /* Simulation */
-    label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
-    input[type=number], input[type=text] {
-      width: 100%;
+    .comp-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 8px;
+      border: 1px solid var(--border2);
       background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      padding: 6px 10px;
-      font-size: 12px;
-      outline: none;
-      margin-bottom: 10px;
+      cursor: grab; margin-bottom: 6px;
+      transition: border-color 0.13s, background 0.13s;
+      user-select: none;
     }
-    input[type=number]:focus, input[type=text]:focus {
-      border-color: var(--accent);
+    .comp-card:hover { border-color: var(--border); background: var(--surface3); }
+    .comp-card:active { cursor: grabbing; }
+    .comp-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
+    .comp-icon svg { width: 17px; height: 17px; }
+    .ci-lb  { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .ci-srv { background: rgba(59,130,246,0.15);  color: #60a5fa; }
+    .ci-cli { background: rgba(16,185,129,0.15);  color: #34d399; }
+    .ct-name { font-size: 12px; font-weight: 600; margin-bottom: 1px; }
+    .ct-desc { font-size: 11px; color: var(--text2); line-height: 1.35; }
 
-    .btn {
-      width: 100%;
-      padding: 8px;
-      border-radius: 7px;
-      border: none;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
+    .tips-box {
+      margin-top: 12px; padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(99,102,241,0.15);
+      background: rgba(99,102,241,0.05);
     }
-    .btn-primary {
-      background: var(--accent);
-      color: white;
+    .tips-hdr {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; color: #818cf8; margin-bottom: 5px;
     }
-    .btn-primary:hover { background: #4f46e5; }
-    .btn-primary:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
-    .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-    .btn-danger:hover { background: rgba(239,68,68,0.25); }
-    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-top: 6px; }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
+    .tips-hdr svg { width: 13px; height: 13px; }
+    .tips-text { font-size: 11px; color: var(--text2); line-height: 1.5; }
 
-    /* Stats */
-    .stat-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 5px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 12px;
+    .toolbar {
+      padding: 7px 10px; border-top: 1px solid var(--border);
+      display: flex; gap: 4px;
     }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-row .key { color: var(--muted); }
-    .stat-row .val { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .stat-row .val.green { color: var(--success); }
-    .stat-row .val.red { color: var(--danger); }
-    .stat-row .val.blue { color: var(--accent2); }
+    .tb-btn {
+      width: 30px; height: 30px; border-radius: 6px;
+      border: 1px solid transparent; background: transparent;
+      color: var(--text2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.13s;
+    }
+    .tb-btn svg { width: 14px; height: 14px; }
+    .tb-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
+    .tb-btn.active { background: var(--accent-bg); border-color: rgba(99,102,241,0.3); color: #818cf8; }
 
-    /* ── Canvas ── */
+    /* ── Canvas ─────────────────────────────────────────────────────── */
     #canvas-area {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
+      flex: 1; position: relative; overflow: hidden;
       background: var(--bg);
       background-image:
-        radial-gradient(circle at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 60%),
-        linear-gradient(rgba(120,120,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(120,120,255,0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 40px 40px, 40px 40px;
+        radial-gradient(ellipse 75% 55% at 50% 40%, rgba(99,102,241,0.045) 0%, transparent 70%),
+        radial-gradient(circle, rgba(148,163,184,0.10) 1px, transparent 1px);
+      background-size: 100% 100%, 28px 28px;
+      background-position: 0 0, 0 0;
     }
-
-    /* SVG overlay */
     #svg-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: visible;
+      position: absolute; inset: 0;
+      pointer-events: none; overflow: visible;
     }
-
-    .conn-line {
-      stroke-width: 1.5;
-      fill: none;
-      stroke: rgba(99,102,241,0.25);
-      transition: stroke 0.3s;
-    }
-    .conn-line.active {
-      stroke: rgba(99,102,241,0.8);
-      stroke-width: 2;
-      filter: drop-shadow(0 0 4px rgba(99,102,241,0.6));
-    }
-    .conn-line.dead {
-      stroke: rgba(239,68,68,0.2);
-      stroke-dasharray: 6 4;
-    }
-
-    /* ── LB Node ── */
-    #lb-node {
-      position: absolute;
-      width: 110px;
-      padding: 14px 12px 12px;
-      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(167,139,250,0.15));
-      border: 1.5px solid rgba(99,102,241,0.5);
-      border-radius: 14px;
-      text-align: center;
-      cursor: default;
-      user-select: none;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 20px rgba(99,102,241,0.2), inset 0 1px 0 rgba(255,255,255,0.07);
-      transform: translate(-50%, -50%);
-      z-index: 5;
-      transition: box-shadow 0.2s;
-    }
-    #lb-node.routing {
-      box-shadow: 0 0 30px rgba(99,102,241,0.6), inset 0 1px 0 rgba(255,255,255,0.07);
-    }
-    #lb-node .lb-icon { font-size: 22px; margin-bottom: 4px; }
-    #lb-node .lb-label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--accent2); }
-    #lb-node .lb-algo { font-size: 9px; color: var(--muted); margin-top: 2px; }
 
     /* ── Client Node ── */
     #client-node {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      pointer-events: none;
-      z-index: 4;
+      position: absolute; transform: translate(-50%,-50%);
+      z-index: 5; pointer-events: none;
     }
-    #client-node .c-icon {
-      width: 46px; height: 46px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(34,211,160,0.15), rgba(34,211,160,0.08));
-      border: 1.5px solid rgba(34,211,160,0.35);
+    .client-box {
+      width: 104px; padding: 14px 10px 12px;
+      background: var(--surface2);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 12px; text-align: center;
+    }
+    .cn-icon-wrap {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2);
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      margin: 0 auto 4px;
-      box-shadow: 0 0 14px rgba(34,211,160,0.15);
+      margin: 0 auto 7px; color: #34d399;
     }
-    #client-node .c-label { font-size: 10px; color: var(--muted); }
+    .cn-icon-wrap svg { width: 20px; height: 20px; }
+    .cn-label { font-size: 11px; font-weight: 600; color: var(--text); letter-spacing: 0.2px; }
+
+    /* ── LB Node ── */
+    #lb-node { position: absolute; transform: translate(-50%,-50%); z-index: 5; }
+    .lb-box {
+      width: 124px; padding: 14px 12px 12px;
+      background: var(--surface2);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 14px; text-align: center;
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.08) inset;
+      transition: box-shadow 0.18s;
+    }
+    #lb-node.routing .lb-box {
+      box-shadow: 0 0 32px rgba(99,102,241,0.35), 0 0 0 1px rgba(99,102,241,0.15) inset;
+    }
+    .lb-icon-wrap {
+      width: 44px; height: 44px; border-radius: 11px;
+      background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 8px; color: #818cf8;
+    }
+    .lb-icon-wrap svg { width: 20px; height: 20px; }
+    .lb-title { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+    .lb-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25);
+      font-size: 9px; color: #818cf8; font-weight: 600; letter-spacing: 0.2px;
+    }
 
     /* ── Server Nodes ── */
     .server-node {
-      position: absolute;
-      width: 140px;
+      position: absolute; width: 148px;
       background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 10px;
-      cursor: grab;
-      user-select: none;
-      transform: translate(-50%, -50%);
-      z-index: 5;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 10px 10px;
+      cursor: grab; user-select: none;
+      transform: translate(-50%,-50%); z-index: 5;
+      transition: border-color 0.18s, box-shadow 0.18s;
     }
     .server-node:active { cursor: grabbing; }
-    .server-node.healthy {
-      border-color: rgba(34,211,160,0.35);
-      box-shadow: 0 0 12px rgba(34,211,160,0.08);
-    }
-    .server-node.dead {
-      border-color: rgba(239,68,68,0.35);
-      box-shadow: 0 0 12px rgba(239,68,68,0.08);
-      opacity: 0.7;
-    }
-    .server-node.processing {
-      box-shadow: 0 0 18px rgba(var(--node-r),var(--node-g),var(--node-b),0.4);
-    }
-    .server-node .node-header {
-      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
-    }
-    .server-node .node-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      transition: background 0.3s;
-    }
-    .server-node.healthy .node-dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
-    .server-node.dead .node-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
-    .server-node .node-name { font-size: 11px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .server-node .btn-info-node {
-      width: 20px; height: 20px;
-      padding: 0;
-      background: rgba(99,102,241,0.15);
-      border: 1px solid rgba(99,102,241,0.3);
-      border-radius: 50%;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .server-node.healthy { border-color: rgba(255,255,255,0.09); }
+    .server-node.dead    { border-color: rgba(239,68,68,0.22); opacity: 0.62; }
+
+    .sn-header { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+    .sn-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .server-node .btn-info-node:hover {
-      background: rgba(99,102,241,0.3);
-      border-color: rgba(99,102,241,0.5);
-      transform: scale(1.1);
+    .sn-icon svg { width: 16px; height: 16px; }
+    .sn-info { flex: 1; min-width: 0; }
+    .sn-name {
+      font-size: 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .server-node .node-port {
-      font-size: 11px;
-      color: var(--accent2);
-      margin-bottom: 8px;
-      padding: 4px 8px;
-      background: rgba(99,102,241,0.1);
-      border-radius: 4px;
-      text-align: center;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-weight: 600;
-      border: 1px solid rgba(99,102,241,0.2);
-    }
-    .server-node .node-color-bar {
-      width: 100%; height: 2px; border-radius: 2px; margin-bottom: 7px;
-    }
-    .node-stats-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 7px;
-    }
-    .node-stat { background: var(--surface); border-radius: 5px; padding: 4px 5px; }
-    .node-stat .ns-label { font-size: 9px; color: var(--muted); margin-bottom: 1px; }
-    .node-stat .ns-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .node-actions { display: flex; gap: 4px; }
-    .node-actions button {
-      flex: 1; font-size: 10px; padding: 4px 0; border-radius: 5px; border: none; cursor: pointer; font-weight: 600; transition: all 0.15s;
-    }
-    .btn-kill-node { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .btn-kill-node:hover { background: rgba(239,68,68,0.3); }
-    .btn-kill-node.revive { background: rgba(34,211,160,0.15); color: var(--success); }
-    .btn-kill-node.revive:hover { background: rgba(34,211,160,0.3); }
-    .btn-rm-node { background: rgba(100,116,139,0.15); color: var(--muted); }
-    .btn-rm-node:hover { background: rgba(239,68,68,0.2); color: var(--danger); }
+    .sn-port { font-size: 10px; color: var(--text2); font-family: 'Menlo','Consolas',monospace; margin-top: 1px; }
+    .sn-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .server-node.healthy .sn-dot { background: #10b981; box-shadow: 0 0 5px rgba(16,185,129,0.6); }
+    .server-node.dead    .sn-dot { background: var(--danger); box-shadow: 0 0 5px rgba(239,68,68,0.6); }
 
-    /* ── Request packets ── */
+    .sn-colorbar { height: 2px; border-radius: 2px; margin-bottom: 10px; opacity: 0.7; }
+
+    /* Stats section removed - view details via info button */
+
+    .sn-actions { display: flex; gap: 3px; }
+    .sn-actions button {
+      flex: 1; font-size: 10px; padding: 4px 0;
+      border-radius: 5px; border: none; cursor: pointer;
+      font-weight: 600; transition: all 0.13s; font-family: var(--font);
+    }
+    .btn-kill-node        { background: rgba(239,68,68,0.10); color: #f87171; }
+    .btn-kill-node:hover  { background: rgba(239,68,68,0.22); }
+    .btn-kill-node.revive        { background: rgba(16,185,129,0.10); color: #34d399; }
+    .btn-kill-node.revive:hover  { background: rgba(16,185,129,0.22); }
+    .btn-rm-node       { background: rgba(255,255,255,0.05); color: var(--text2); }
+    .btn-rm-node:hover { background: rgba(239,68,68,0.15); color: #f87171; }
+    .btn-info-node {
+      width: 22px; height: 22px; padding: 0;
+      background: rgba(99,102,241,0.10); border: 1px solid rgba(99,102,241,0.22);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.13s; color: #818cf8;
+    }
+    .btn-info-node svg { width: 10px; height: 10px; }
+    .btn-info-node:hover { background: rgba(99,102,241,0.22); transform: scale(1.1); }
+
+    /* Packets */
     .packet {
-      position: absolute;
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 20;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 8px currentColor;
+      position: absolute; width: 9px; height: 9px; border-radius: 50%;
+      pointer-events: none; z-index: 20;
+      transform: translate(-50%,-50%); box-shadow: 0 0 7px currentColor;
     }
 
-    /* ── Add Server Modal ── */
-    #modal-overlay {
-      display: none;
-      position: fixed; inset: 0; z-index: 100;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
-      align-items: center; justify-content: center;
-    }
-    #modal-overlay.open { display: flex; }
-    #modal-box {
+    /* ── Right Panel ────────────────────────────────────────────────── */
+    .right-panel {
+      width: 238px; flex-shrink: 0;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 24px;
-      width: 300px;
-    }
-    #modal-box h3 { font-size: 14px; margin-bottom: 16px; }
-    .modal-close {
-      float: right; background: none; border: none; color: var(--muted);
-      font-size: 18px; cursor: pointer; margin-top: -4px;
-    }
-    .modal-close:hover { color: var(--text); }
-
-    /* ── Server Details Modal ── */
-    #server-details-overlay {
-      display: none;
-      position: fixed; inset: 0; z-index: 100;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
-      align-items: center; justify-content: center;
-    }
-    #server-details-overlay.open { display: flex; }
-    #server-details-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 24px;
-      width: 360px;
-      max-height: 80vh;
+      border-left: 1px solid var(--border);
       overflow-y: auto;
     }
-    #server-details-box h3 { font-size: 16px; margin-bottom: 20px; font-weight: 600; }
-    
-    .detail-section {
-      margin-bottom: 16px;
-    }
-    .detail-section label {
-      display: block;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .detail-value {
-      font-size: 13px;
-      color: var(--text);
-      padding: 8px 12px;
-      background: var(--surface2);
-      border-radius: 6px;
-      border: 1px solid var(--border);
-    }
-    .detail-url {
-      font-family: 'Consolas', 'Monaco', monospace;
-      word-break: break-all;
-    }
-    
-    .detail-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 20px 0;
-      padding: 16px;
-      background: var(--surface2);
-      border-radius: 8px;
-    }
-    .detail-stat-item {
-      text-align: center;
-    }
-    .detail-stat-label {
-      font-size: 10px;
-      color: var(--muted);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .detail-stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent2);
-      font-variant-numeric: tabular-nums;
-    }
-    
-    .detail-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 20px;
-    }
-    .detail-actions button {
-      flex: 1;
-    }
+    .rp-body { padding: 14px 13px; }
+    .rp-sec { margin-bottom: 20px; }
+    .rp-sec:last-child { margin-bottom: 0; }
+    .rp-sec-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
 
-    /* ── Toast ── */
+    .rp-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; display: block; }
+    .rp-select, .rp-input {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text); padding: 7px 9px; font-size: 12px;
+      outline: none; font-family: var(--font);
+    }
+    .rp-select {
+      cursor: pointer; appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 9px center;
+      padding-right: 26px; margin-bottom: 11px;
+    }
+    .rp-select option { background: #181830; }
+    .rp-select:focus, .rp-input:focus { border-color: rgba(99,102,241,0.5); }
+
+    .rp-input-row { display: flex; align-items: center; gap: 6px; margin-bottom: 11px; }
+    .rp-input-row .rp-input { margin-bottom: 0; }
+    .rp-unit { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+
+    .btn-sim {
+      width: 100%; padding: 9px; border-radius: 8px; border: none;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      background: var(--accent); color: white; font-family: var(--font);
+      transition: background 0.13s, box-shadow 0.13s;
+    }
+    .btn-sim:hover { background: var(--accent-h); box-shadow: 0 0 0 3px rgba(99,102,241,0.22); }
+    .btn-sim.is-running { background: #4338ca; }
+    .btn-sim svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    .btn-add {
+      width: 100%; padding: 7px; border-radius: 7px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text2); font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all 0.13s; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-family: var(--font);
+    }
+    .btn-add:hover { border-color: rgba(255,255,255,0.14); color: var(--text); background: var(--surface3); }
+    .btn-add svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .btn-add.spin {
+      background: var(--accent-bg); border-color: rgba(99,102,241,0.25);
+      color: #818cf8;
+    }
+    .btn-add.spin:hover { background: rgba(99,102,241,0.18); }
+
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; border-bottom: 1px solid var(--border2); font-size: 12px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .sr-key   { color: var(--text2); }
+    .sr-val   { font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .sr-val.blue  { color: #818cf8; }
+    .sr-val.green { color: #34d399; }
+    .sr-val.red   { color: #f87171; }
+    .sr-val.white { color: var(--text); }
+
+    .util-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .util-row:last-child { margin-bottom: 0; }
+    .util-name { font-size: 11px; color: var(--text2); width: 80px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .util-track { flex: 1; height: 3px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+    .util-fill  { height: 100%; border-radius: 3px; transition: width 0.35s ease; }
+    .util-pct   { font-size: 11px; color: var(--text2); width: 28px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+    /* ── Status Bar ─────────────────────────────────────────────────── */
+    #status-bar {
+      height: 50px; background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 10px; flex-shrink: 0;
+    }
+    .sb-ctrl { display: flex; gap: 4px; flex-shrink: 0; }
+    .sb-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.13s;
+    }
+    .sb-btn svg { width: 12px; height: 12px; }
+    .sb-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.12); }
+    .sb-btn:disabled { color: var(--muted); cursor: not-allowed; }
+    .sb-divider { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+    .sb-info { flex: 1; min-width: 0; }
+    .sb-title  { font-size: 12px; font-weight: 600; color: var(--text); }
+    .sb-detail { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    .sb-detail .srv-hi { font-weight: 600; }
+    .sb-rps { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+    .sb-rps-lbl { font-size: 11px; color: var(--text2); white-space: nowrap; }
+    .sb-rps-val { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); min-width: 38px; text-align: right; }
+
+    /* ── Timeline ───────────────────────────────────────────────────── */
+    #timeline-bar {
+      height: 44px; background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 10px; flex-shrink: 0;
+    }
+    .tl-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); flex-shrink: 0; white-space: nowrap; }
+    #timeline-dots { flex: 1; display: flex; align-items: center; gap: 4px; overflow: hidden; }
+    .tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    #timeline-legend { display: flex; gap: 10px; flex-shrink: 0; }
+    .leg-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text2); white-space: nowrap; }
+    .leg-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Modals ─────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(3px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; width: 300px;
+    }
+    .modal-box.wide { width: 360px; max-height: 84vh; overflow-y: auto; }
+    .modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .modal-title { font-size: 14px; font-weight: 600; }
+    .modal-x {
+      width: 24px; height: 24px; border-radius: 5px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text2); font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.13s; font-family: var(--font);
+    }
+    .modal-x:hover { color: var(--text); border-color: rgba(255,255,255,0.14); }
+    .m-label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px; }
+    .m-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text); padding: 7px 10px;
+      font-size: 12px; outline: none; margin-bottom: 10px; font-family: var(--font);
+    }
+    .m-input:focus { border-color: rgba(99,102,241,0.5); }
+    .m-submit {
+      width: 100%; padding: 8px; border-radius: 7px; border: none;
+      background: var(--accent); color: white; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: background 0.13s; font-family: var(--font);
+    }
+    .m-submit:hover { background: var(--accent-h); }
+
+    .detail-sec { margin-bottom: 12px; }
+    .detail-sec label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text2); margin-bottom: 4px; }
+    .detail-val { font-size: 12px; color: var(--text); padding: 7px 10px; background: var(--surface2); border-radius: 6px; border: 1px solid var(--border); }
+    .detail-url { font-family: 'Menlo','Consolas',monospace; word-break: break-all; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; background: var(--surface2); border-radius: 8px; margin: 12px 0; }
+    .dg-item { text-align: center; }
+    .dg-label { font-size: 10px; color: var(--text2); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dg-val   { font-size: 20px; font-weight: 700; color: #818cf8; }
+    .detail-acts { display: flex; gap: 7px; margin-top: 14px; }
+    .detail-acts button { flex: 1; padding: 7px; border-radius: 7px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.13s; font-family: var(--font); }
+    .d-btn-danger { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.22) !important; }
+    .d-btn-danger:hover { background: rgba(239,68,68,0.22); }
+    .d-btn-sec { background: var(--surface2); color: var(--text2); border: 1px solid var(--border) !important; }
+    .d-btn-sec:hover { color: var(--text); border-color: rgba(255,255,255,0.14) !important; background: var(--surface3); }
+
+    /* Toast */
     #toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: 102px; left: 50%; transform: translateX(-50%);
       background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 8px 16px; font-size: 12px;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.2s;
-      z-index: 200;
+      border-radius: 7px; padding: 7px 14px; font-size: 12px;
+      opacity: 0; pointer-events: none; transition: opacity 0.18s;
+      z-index: 300; white-space: nowrap; color: var(--text);
     }
     #toast.show { opacity: 1; }
 
-    /* scrollbar */
-    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+    /* ── Mobile ─────────────────────────────────────────────────────── */
+    @media (max-width: 920px) {
+      .left-panel { display: none; }
+      .right-panel { width: 205px; }
+    }
+
+    @media (max-width: 680px) {
+      body { height: auto; min-height: 100dvh; overflow-y: auto; overflow-x: hidden; }
+
+      .workspace {
+        flex-direction: column;
+        flex: none;
+        overflow: visible;
+      }
+      /* Canvas always shows first */
+      #canvas-area {
+        order: 0;
+        flex: none;
+        height: 56vw;
+        min-height: 280px;
+        max-height: 400px;
+        overflow: hidden;
+      }
+      .right-panel {
+        order: 1;
+        flex: none;
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        overflow: visible;
+      }
+      .left-panel { display: none; }
+
+      .rp-body { display: grid; grid-template-columns: 1fr 1fr; }
+      .rp-sec  { padding: 12px; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+      .rp-sec:nth-child(odd) { border-right: 1px solid var(--border); }
+
+      #status-bar  { height: auto; min-height: 50px; flex-wrap: wrap; padding: 9px 13px; gap: 7px; }
+      .sb-rps      { margin-left: auto; }
+      #timeline-bar{ height: auto; min-height: 44px; flex-wrap: wrap; padding: 9px 13px; }
+      #timeline-dots { flex-wrap: wrap; gap: 4px; min-width: 0; }
+      #timeline-legend { flex-wrap: wrap; gap: 6px; }
+    }
+
+    @media (max-width: 440px) {
+      header h1 { display: none; }
+      .hdr-btn .btn-text { display: none; }
+      .hdr-btn { padding: 5px 7px; }
+      .rp-body { grid-template-columns: 1fr; }
+      .rp-sec:nth-child(odd) { border-right: none; }
+      .modal-box, .modal-box.wide { width: calc(100vw - 24px); }
+      #canvas-area { height: 70vw; min-height: 240px; }
+    }
   </style>
 </head>
 <body>
 
+<!-- Header -->
 <header>
-  <!-- <div class="logo">⚡</div> -->
+  <div class="hdr-logo">
+    <!-- Lucide: share-2 -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/>
+      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+    </svg>
+  </div>
   <h1>Load Balancer Simulator</h1>
-  <span class="badge" id="header-badge">Round Robin</span>
+  <div class="hdr-actions">
+    <button class="hdr-btn" id="btn-reset">
+      <!-- rotate-ccw -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+      </svg>
+      <span class="btn-text">Reset</span>
+    </button>
+    <button class="hdr-btn" id="btn-save-layout">
+      <!-- save -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+        <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
+        <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
+      </svg>
+      <span class="btn-text">Save Layout</span>
+    </button>
+    <button class="hdr-icon-btn" id="btn-theme" title="Toggle theme">
+      <!-- sun -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+      </svg>
+    </button>
+  </div>
 </header>
 
+<!-- Workspace -->
 <div class="workspace">
 
-  <!-- Sidebar -->
-  <aside>
-    <!-- Algorithm -->
-    <div>
-      <div class="section-title">Algorithm</div>
-      <button class="algo-btn active" data-algo="round-robin">
-        <span class="dot"></span> Round Robin
-      </button>
-      <button class="algo-btn" data-algo="weighted-round-robin">
-        <span class="dot"></span> Weighted Round Robin
-      </button>
-      <button class="algo-btn" data-algo="least-connections">
-        <span class="dot"></span> Least Connections
-      </button>
-    </div>
+  <!-- Left panel -->
+  <aside class="left-panel">
+    <div class="lp-body">
+      <div class="sec-title">Components</div>
+      <div class="sec-sub">Drag and drop to the canvas</div>
 
-    <!-- Simulation -->
-    <div>
-      <div class="section-title">Simulation</div>
-      <label>Number of requests</label>
-      <input type="number" id="req-count" value="10" min="1" max="200" />
-      <label>Delay between requests (ms)</label>
-      <input type="number" id="req-delay" value="300" min="50" max="3000" />
-      <label>Processing time (ms)</label>
-      <input type="number" id="proc-time" value="1500" min="200" max="8000" />
-      <button class="btn btn-primary" id="btn-simulate">▶ Simulate</button>
-      <button class="btn btn-secondary" id="btn-stop" disabled>⏹ Stop</button>
-    </div>
-
-    <!-- Add Server -->
-    <div>
-      <div class="section-title">Servers</div>
-      <button class="btn btn-primary" id="btn-spin-server">⚡ Spin Up Server</button>
-      <button class="btn btn-secondary" id="btn-add-server">+ Add Existing</button>
-    </div>
-
-    <!-- Stats -->
-    <div>
-      <div class="section-title">Stats</div>
-      <div id="stats-panel">
-        <div class="stat-row">
-          <span class="key">Total Requests</span>
-          <span class="val blue" id="stat-total">0</span>
+      <div class="comp-card">
+        <div class="comp-icon ci-lb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/>
+            <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+          </svg>
         </div>
-        <div class="stat-row">
-          <span class="key">Servers Up</span>
-          <span class="val green" id="stat-alive">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="key">Servers Down</span>
-          <span class="val red" id="stat-dead">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="key">In Flight</span>
-          <span class="val" id="stat-inflight">0</span>
+        <div>
+          <div class="ct-name">Load Balancer</div>
+          <div class="ct-desc">Distributes incoming requests to servers</div>
         </div>
       </div>
+
+      <div class="comp-card">
+        <div class="comp-icon ci-srv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/>
+            <line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>
+          </svg>
+        </div>
+        <div>
+          <div class="ct-name">Server</div>
+          <div class="ct-desc">Backend server listening on a port</div>
+        </div>
+      </div>
+
+      <div class="comp-card">
+        <div class="comp-icon ci-cli">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="3" rx="2"/>
+            <line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+          </svg>
+        </div>
+        <div>
+          <div class="ct-name">Client</div>
+          <div class="ct-desc">Request source</div>
+        </div>
+      </div>
+
+      <div class="tips-box">
+        <div class="tips-hdr">
+          <!-- lightbulb -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+            <path d="M9 18h6"/><path d="M10 22h4"/>
+          </svg>
+          Tips
+        </div>
+        <div class="tips-text">Click <strong>Start Simulation</strong> to see requests flow through the load balancer.</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <!-- cursor -->
+      <button class="tb-btn active" title="Select">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/>
+        </svg>
+      </button>
+      <!-- hand -->
+      <button class="tb-btn" title="Pan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/>
+          <path d="M10 10.5V6a2 2 0 0 0-4 0v8"/>
+          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+        </svg>
+      </button>
+      <!-- trash-2 -->
+      <button class="tb-btn" title="Delete" id="tb-delete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+          <line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
+        </svg>
+      </button>
+      <!-- maximize-2 -->
+      <button class="tb-btn" title="Fit view" id="tb-fit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+          <line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>
+        </svg>
+      </button>
     </div>
   </aside>
 
   <!-- Canvas -->
   <main id="canvas-area">
     <svg id="svg-layer"></svg>
+
     <div id="client-node">
-      <div class="c-icon">🌐</div>
-      <div class="c-label">Internet</div>
+      <div class="client-box">
+        <div class="cn-icon-wrap">
+          <!-- monitor -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="3" rx="2"/>
+            <line x1="8" x2="16" y1="21" y2="21"/>
+            <line x1="12" x2="12" y1="17" y2="21"/>
+          </svg>
+        </div>
+        <div class="cn-label">Client</div>
+      </div>
     </div>
+
     <div id="lb-node">
-      <div class="lb-icon">⚡</div>
-      <div class="lb-label">Load Balancer</div>
-      <div class="lb-algo" id="lb-algo-label">Round Robin</div>
+      <div class="lb-box">
+        <div class="lb-icon-wrap">
+          <!-- share-2 -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/>
+            <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+          </svg>
+        </div>
+        <div class="lb-title">Load Balancer</div>
+        <div class="lb-badge" id="lb-algo-label">Round Robin</div>
+      </div>
     </div>
   </main>
+
+  <!-- Right panel -->
+  <aside class="right-panel">
+    <div class="rp-body">
+
+      <div class="rp-sec">
+        <div class="rp-sec-title">Simulation Settings</div>
+
+        <label class="rp-label">Algorithm</label>
+        <select class="rp-select" id="algo-select">
+          <option value="round-robin">Round Robin</option>
+          <option value="weighted-round-robin">Weighted Round Robin</option>
+          <option value="least-connections">Least Connections</option>
+        </select>
+
+        <label class="rp-label">Total Requests</label>
+        <select class="rp-select" id="req-count">
+          <option value="10">10</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+
+        <label class="rp-label">Delay Between Requests</label>
+        <div class="rp-input-row">
+          <input type="number" class="rp-input" id="req-delay" value="300" min="50" max="3000" />
+          <span class="rp-unit">ms</span>
+        </div>
+
+        <label class="rp-label">Time to Process Request</label>
+        <div class="rp-input-row">
+          <input type="number" class="rp-input" id="proc-time" value="1500" min="200" max="8000" />
+          <span class="rp-unit">ms</span>
+        </div>
+
+        <button class="btn-sim" id="btn-simulate">
+          <!-- play icon -->
+          <svg id="sim-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="6 3 20 12 6 21 6 3"/>
+          </svg>
+          <span id="sim-btn-text">Start Simulation</span>
+        </button>
+      </div>
+
+      <div class="rp-sec">
+        <div class="rp-sec-title">Servers</div>
+        <button class="btn-add spin" id="btn-spin-server">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          Spin Up Server
+        </button>
+        <button class="btn-add" id="btn-add-server">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/>
+          </svg>
+          Add Existing
+        </button>
+      </div>
+
+      <div class="rp-sec">
+        <div class="rp-sec-title">Statistics</div>
+        <div class="stat-row"><span class="sr-key">Total Requests</span><span class="sr-val blue"  id="stat-total">0</span></div>
+        <div class="stat-row"><span class="sr-key">Completed</span>     <span class="sr-val green" id="stat-completed">0</span></div>
+        <div class="stat-row"><span class="sr-key">In Progress</span>   <span class="sr-val white" id="stat-inflight">0</span></div>
+        <div class="stat-row"><span class="sr-key">Failed</span>        <span class="sr-val red"   id="stat-failed">0</span></div>
+        <div class="stat-row"><span class="sr-key">Servers Up</span>    <span class="sr-val green" id="stat-alive">0</span></div>
+        <div class="stat-row"><span class="sr-key">Servers Down</span>  <span class="sr-val red"   id="stat-dead">0</span></div>
+      </div>
+
+      <div class="rp-sec">
+        <div class="rp-sec-title">Server Utilization</div>
+        <div id="util-list"><div style="font-size:11px;color:var(--muted)">No servers yet</div></div>
+      </div>
+
+    </div>
+  </aside>
 </div>
 
-<!-- Modal - Add Server -->
-<div id="modal-overlay">
-  <div id="modal-box">
-    <button class="modal-close" id="modal-close">✕</button>
-    <h3>Add Existing Server</h3>
-    <label>Server URL</label>
-    <input type="text" id="modal-url" placeholder="http://localhost:8084" />
-    <label>Weight (for Weighted RR)</label>
-    <input type="number" id="modal-weight" value="1" min="1" max="10" />
-    <button class="btn btn-primary" id="modal-confirm" style="margin-top:4px">Add Server</button>
+<!-- Status bar -->
+<div id="status-bar">
+  <div class="sb-ctrl">
+    <!-- pause -->
+    <button class="sb-btn" id="btn-pause" disabled title="Pause">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+      </svg>
+    </button>
+    <!-- stop/square -->
+    <button class="sb-btn" id="btn-stop" disabled title="Stop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <rect width="18" height="18" x="3" y="3" rx="2"/>
+      </svg>
+    </button>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-info">
+    <div class="sb-title"  id="sb-title">Idle</div>
+    <div class="sb-detail" id="sb-detail">Start simulation to see traffic flow</div>
+  </div>
+  <div class="sb-rps">
+    <span class="sb-rps-lbl">Requests/sec</span>
+    <svg width="36" height="20" viewBox="0 0 36 20" fill="none" style="opacity:.5">
+      <path d="M0 10 Q4.5 3 9 10 Q13.5 17 18 10 Q22.5 3 27 10 Q31.5 17 36 10"
+            stroke="#6366f1" stroke-width="1.5" fill="none"/>
+    </svg>
+    <span class="sb-rps-val" id="sb-rps">0.0</span>
   </div>
 </div>
 
-<!-- Modal - Server Details -->
-<div id="server-details-overlay">
-  <div id="server-details-box">
-    <button class="modal-close" id="server-details-close">✕</button>
-    <h3 id="server-details-title">Server Details</h3>
-    
-    <div class="detail-section">
+<!-- Timeline -->
+<div id="timeline-bar">
+  <div class="tl-label">Simulation Timeline</div>
+  <div id="timeline-dots"></div>
+  <div id="timeline-legend"></div>
+</div>
+
+<!-- Modal: Add Server -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span class="modal-title">Add Existing Server</span>
+      <button class="modal-x" id="modal-close">✕</button>
+    </div>
+    <label class="m-label">Server URL</label>
+    <input type="text" class="m-input" id="modal-url" placeholder="http://localhost:8084" />
+    <label class="m-label">Weight (for Weighted RR)</label>
+    <input type="number" class="m-input" id="modal-weight" value="1" min="1" max="10" />
+    <button class="m-submit" id="modal-confirm">Add Server</button>
+  </div>
+</div>
+
+<!-- Modal: Server Details -->
+<div class="modal-overlay" id="server-details-overlay">
+  <div class="modal-box wide">
+    <div class="modal-hdr">
+      <span class="modal-title" id="server-details-title">Server Details</span>
+      <button class="modal-x" id="server-details-close">✕</button>
+    </div>
+    <div class="detail-sec">
       <label>Server Name</label>
-      <div class="detail-value" id="detail-name">-</div>
+      <div class="detail-val" id="detail-name">-</div>
     </div>
-    
-    <div class="detail-section">
+    <div class="detail-sec">
       <label>Server URL</label>
-      <div class="detail-value detail-url" id="detail-url">-</div>
+      <div class="detail-val detail-url" id="detail-url">-</div>
     </div>
-    
-    <div class="detail-section">
+    <div class="detail-sec">
       <label>Status</label>
-      <div class="detail-value" id="detail-status">-</div>
+      <div class="detail-val" id="detail-status">-</div>
     </div>
-    
-    <div class="detail-section">
+    <div class="detail-sec">
       <label>Weight</label>
-      <input type="number" id="detail-weight-input" value="1" min="1" max="10" />
-      <button class="btn btn-primary" id="detail-weight-save" style="margin-top:6px">Update Weight</button>
+      <input type="number" class="m-input" id="detail-weight-input" value="1" min="1" max="10" style="margin-bottom:6px"/>
+      <button class="m-submit" id="detail-weight-save" style="margin-top:0">Update Weight</button>
     </div>
-    
-    <div class="detail-stats">
-      <div class="detail-stat-item">
-        <div class="detail-stat-label">Active Connections</div>
-        <div class="detail-stat-value" id="detail-active">0</div>
+    <div class="detail-grid">
+      <div class="dg-item">
+        <div class="dg-label">Active Connections</div>
+        <div class="dg-val" id="detail-active">0</div>
       </div>
-      <div class="detail-stat-item">
-        <div class="detail-stat-label">Total Requests</div>
-        <div class="detail-stat-value" id="detail-total">0</div>
+      <div class="dg-item">
+        <div class="dg-label">Total Requests</div>
+        <div class="dg-val" id="detail-total">0</div>
       </div>
     </div>
-    
-    <div class="detail-actions">
-      <button class="btn btn-danger" id="detail-kill-btn">Kill Server</button>
-      <button class="btn btn-secondary" id="detail-remove-btn">Remove Server</button>
+    <div class="detail-acts">
+      <button class="d-btn-danger" id="detail-kill-btn">Kill Server</button>
+      <button class="d-btn-sec"    id="detail-remove-btn">Remove Server</button>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
-
 <script src="app.js"></script>
 </body>
 </html>
