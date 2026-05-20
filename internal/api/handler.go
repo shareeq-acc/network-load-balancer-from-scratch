@@ -203,7 +203,6 @@ func (h *Handler) SetAlgorithm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate algorithm
 	validAlgos := map[string]bool{
 		"round-robin":          true,
 		"weighted-round-robin": true,
@@ -247,7 +246,6 @@ func (h *Handler) SpinUpServer(w http.ResponseWriter, r *http.Request) {
 		Weight int `json:"weight"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// Default weight if parsing fails
 		req.Weight = 1
 	}
 	if req.Weight <= 0 {
@@ -262,7 +260,6 @@ func (h *Handler) SpinUpServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add to backend pool
 	h.pool.AddBackend(balancer.Backend{URL: serverInfo.URL, Weight: req.Weight})
 	h.mu.Lock()
 	h.requests[serverInfo.URL] = 0
