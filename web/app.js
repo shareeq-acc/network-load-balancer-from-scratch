@@ -687,7 +687,7 @@ function init() {
       updateAllLines(); updateStatsPanel();
     })
     .catch(() => {
-      ['http://localhost:8081','http://localhost:8082','http://localhost:8083'].forEach(u => addServer(u, 1, false));
+      ['http://127.0.0.1:8081','http://127.0.0.1:8082','http://127.0.0.1:8083'].forEach(u => addServer(u, 1, false));
     });
   setInterval(syncFromBackend, 5000);
 }
@@ -752,7 +752,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
     const cl = document.getElementById('client-lb-line'); if (cl) cl.remove();
 
     // 4. Add the default 3 servers (registered on backend too)
-    const defaults = ['http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083'];
+    const defaults = ['http://127.0.0.1:8081', 'http://127.0.0.1:8082', 'http://127.0.0.1:8083'];
     for (const url of defaults) {
       addServer(url, 1, true);
     }

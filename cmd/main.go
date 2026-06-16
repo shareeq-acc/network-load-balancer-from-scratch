@@ -58,7 +58,7 @@ func main() {
 	}, procAdapter)
 
 	// Start health checker
-	checker := health.NewChecker(pool, 5*time.Second, 2*time.Second, 3)
+	checker := health.NewChecker(pool, 5*time.Second, 2*time.Second, 5)
 	checker.Start()
 
 	// Setup graceful shutdown
