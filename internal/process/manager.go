@@ -68,7 +68,7 @@ func (m *Manager) SpinUpServer() (*ServerProcess, error) {
 		return nil, fmt.Errorf("failed to start server: %w", err)
 	}
 
-	url := fmt.Sprintf("http://localhost:%d", port)
+	url := fmt.Sprintf("http://127.0.0.1:%d", port)
 	process := &ServerProcess{
 		Port:    port,
 		URL:     url,
