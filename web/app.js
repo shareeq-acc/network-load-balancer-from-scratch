@@ -173,19 +173,49 @@ function createServerEl(s) {
 // ── Drag & drop ────────────────────────────────────────────────────────────
 function makeDraggable(el, s) {
   let dragging = false, ox = 0, oy = 0;
+  let hasMoved = false;
 
   function startDrag(cx, cy) {
     dragging = true;
+    hasMoved = false;
     const rect = canvas.getBoundingClientRect();
-    ox = cx - rect.left - s.x;
-    oy = cy - rect.top  - s.y;
+    if (canvas.classList.contains('rotated')) {
+      const W_local = canvas.clientWidth;
+      const H_local = canvas.clientHeight;
+      const center_x = rect.left + rect.width / 2;
+      const center_y = rect.top + rect.height / 2;
+      const dx = cx - center_x;
+      const dy = cy - center_y;
+      const local_cx = dy + W_local / 2;
+      const local_cy = -dx + H_local / 2;
+      ox = local_cx - s.x;
+      oy = local_cy - s.y;
+    } else {
+      ox = cx - rect.left - s.x;
+      oy = cy - rect.top  - s.y;
+    }
     el.style.cursor = 'grabbing';
   }
   function moveDrag(cx, cy) {
     if (!dragging) return;
+    hasMoved = true;
+    s.dragged = true;
     const rect = canvas.getBoundingClientRect();
-    s.x = Math.max(76, Math.min(rect.width  - 76, cx - rect.left - ox));
-    s.y = Math.max(76, Math.min(rect.height - 76, cy - rect.top  - oy));
+    if (canvas.classList.contains('rotated')) {
+      const W_local = canvas.clientWidth;
+      const H_local = canvas.clientHeight;
+      const center_x = rect.left + rect.width / 2;
+      const center_y = rect.top + rect.height / 2;
+      const dx = cx - center_x;
+      const dy = cy - center_y;
+      const local_cx = dy + W_local / 2;
+      const local_cy = -dx + H_local / 2;
+      s.x = Math.max(76, Math.min(W_local - 76, local_cx - ox));
+      s.y = Math.max(76, Math.min(H_local - 76, local_cy - oy));
+    } else {
+      s.x = Math.max(76, Math.min(rect.width  - 76, cx - rect.left - ox));
+      s.y = Math.max(76, Math.min(rect.height - 76, cy - rect.top  - oy));
+    }
     el.style.left = s.x + 'px';
     el.style.top  = s.y + 'px';
     updateAllLines();
@@ -199,15 +229,34 @@ function makeDraggable(el, s) {
   document.addEventListener('touchmove', e => { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
   document.addEventListener('mouseup', endDrag);
   document.addEventListener('touchend', endDrag);
+
+  el.addEventListener('click', e => {
+    if (hasMoved) return;
+    if (e.target.closest('button')) return;
+    e.stopPropagation();
+    openServerDetails(s);
+  });
 }
 
 // ── Server management ──────────────────────────────────────────────────────
 function spreadServers() {
   const pos = defaultServerPositions(servers.length);
   servers.forEach((s, i) => {
-    s.x = pos[i].x; s.y = pos[i].y;
-    if (s.el) { s.el.style.left = s.x + 'px'; s.el.style.top = s.y + 'px'; }
+    if (!s.dragged) {
+      s.x = pos[i].x; s.y = pos[i].y;
+      if (s.el) { s.el.style.left = s.x + 'px'; s.el.style.top = s.y + 'px'; }
+    }
   });
+}
+
+function loadLayout() {
+  const saved = localStorage.getItem('lb-layout');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {}
+  }
+  return null;
 }
 
 function addServer(url, weight, syncBackend) {
@@ -215,17 +264,28 @@ function addServer(url, weight, syncBackend) {
   const colorIdx = colorCounter++ % SERVER_COLORS.length;
   const name     = 'Server ' + id;
   const pos      = defaultServerPositions(servers.length + 1);
+
+  // Try to find if this server has a saved layout position
+  const savedList = loadLayout();
+  const savedPos = savedList ? savedList.find(x => x.url === url) : null;
+
   servers.forEach((s, i) => {
-    s.x = pos[i].x; s.y = pos[i].y;
-    if (s.el) { s.el.style.left = s.x + 'px'; s.el.style.top = s.y + 'px'; }
+    if (!s.dragged) {
+      s.x = pos[i].x; s.y = pos[i].y;
+      if (s.el) { s.el.style.left = s.x + 'px'; s.el.style.top = s.y + 'px'; }
+    }
   });
+
   const np = pos[servers.length];
   const s  = {
     id, name,
     url: url || `http://localhost:${8080 + id}`,
     weight: weight || 1,
     alive: true, activeConn: 0, totalReq: 0,
-    x: np.x, y: np.y, colorIdx, el: null, lineEl: null,
+    x: savedPos ? savedPos.x : np.x,
+    y: savedPos ? savedPos.y : np.y,
+    dragged: savedPos ? !!savedPos.dragged : false,
+    colorIdx, el: null, lineEl: null,
   };
   s.el = createServerEl(s);
   servers.push(s);
@@ -569,8 +629,47 @@ function syncFromBackend() {
   }).catch(() => {});
 }
 
+function isCanvasRotated() {
+  return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+}
+
+function checkRotation() {
+  if (isCanvasRotated()) {
+    canvas.classList.add('rotated');
+  } else {
+    canvas.classList.remove('rotated');
+  }
+}
+
+function setupMobileTabs() {
+  const tabs = document.querySelectorAll('.mobile-tab-btn');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      const tabName = btn.dataset.tab;
+      
+      // Update body class
+      document.body.className = document.body.className
+        .split(' ')
+        .filter(c => !c.startsWith('tab-'))
+        .join(' ');
+      document.body.classList.add('tab-' + tabName);
+      
+      // Trigger canvas adjustments
+      checkRotation();
+      positionStaticNodes();
+      spreadServers();
+      updateAllLines();
+    });
+  });
+}
+
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 function init() {
+  document.body.classList.add('tab-simulation');
+  checkRotation();
+  setupMobileTabs();
   positionStaticNodes();
   fetch('/api/state')
     .then(r => r.json())
@@ -626,23 +725,54 @@ document.getElementById('btn-spin-server').addEventListener('click', async () =>
 
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (simRunning) simAbort = true;
-  setTimeout(() => {
+  setTimeout(async () => {
+    // 1. Clean up extra spun servers from the backend Go process
+    try {
+      const res = await fetch('/api/state');
+      if (res.ok) {
+        const state = await res.json();
+        for (const b of state.backends) {
+          await fetch('/api/servers/remove', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: b.url, stopProcess: true })
+          }).catch(() => {});
+        }
+      }
+    } catch (err) {}
+
+    // 2. Clear saved localStorage layouts
+    localStorage.removeItem('lb-layout');
+
+    // 3. Clear local frontend states
     servers.forEach(s => { if (s.el) s.el.remove(); if (s.lineEl) s.lineEl.remove(); });
     servers = []; serverCounter = 0; colorCounter = 0;
     totalRequests = 0; completedRequests = 0; failedRequests = 0; inFlight = 0;
     rrIndex = 0; wrrIndex = 0; timelineDots.length = 0; rpsWindow.length = 0;
     const cl = document.getElementById('client-lb-line'); if (cl) cl.remove();
+
+    // 4. Add the default 3 servers (registered on backend too)
+    const defaults = ['http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083'];
+    for (const url of defaults) {
+      addServer(url, 1, true);
+    }
+
     updateStatsPanel(); renderTimeline(); updateStatusBar(null, false);
-    toast('Reset');
+    toast('Reset to default (3 servers)');
   }, simRunning ? 150 : 0);
 });
 
 document.getElementById('btn-save-layout').addEventListener('click', () => {
-  localStorage.setItem('lb-layout', JSON.stringify(servers.map(s => ({ id: s.id, url: s.url, x: s.x, y: s.y }))));
+  localStorage.setItem('lb-layout', JSON.stringify(servers.map(s => ({ id: s.id, url: s.url, x: s.x, y: s.y, dragged: s.dragged }))));
   toast('Layout saved');
 });
 
-document.getElementById('tb-fit').addEventListener('click', () => { spreadServers(); positionStaticNodes(); updateAllLines(); });
+document.getElementById('tb-fit').addEventListener('click', () => { 
+  servers.forEach(s => s.dragged = false);
+  spreadServers(); 
+  positionStaticNodes(); 
+  updateAllLines(); 
+});
 
 document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal-overlay').classList.remove('open'));
 document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') document.getElementById('modal-overlay').classList.remove('open'); });
@@ -662,6 +792,6 @@ document.getElementById('detail-weight-input').addEventListener('keydown', e => 
 document.getElementById('detail-kill-btn').addEventListener('click', () => { if (currentServerDetails) { toggleKill(currentServerDetails); openServerDetails(currentServerDetails); } });
 document.getElementById('detail-remove-btn').addEventListener('click', () => { if (currentServerDetails) { removeServer(currentServerDetails); closeServerDetails(); } });
 
-window.addEventListener('resize', () => { positionStaticNodes(); spreadServers(); updateAllLines(); });
+window.addEventListener('resize', () => { checkRotation(); positionStaticNodes(); spreadServers(); updateAllLines(); });
 
 init();

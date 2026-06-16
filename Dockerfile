@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o load-balancer ./cmd/main.go
 
 # Runtime stage
-FROM alpine:latest
+FROM golang:1.26-alpine
 
 RUN apk --no-cache add ca-certificates
 
@@ -28,6 +28,9 @@ COPY web ./web
 
 # Copy config
 COPY config.yml .
+
+# Copy backend source code (required for dynamically spinning up servers)
+COPY backend ./backend
 
 # Expose port
 EXPOSE 8080

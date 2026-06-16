@@ -453,58 +453,214 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
 
+    /* ── Mobile Tab Bar ─────────────────────────────────────────────── */
+    .mobile-tab-bar {
+      display: none;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 44px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
     /* ── Mobile ─────────────────────────────────────────────────────── */
     @media (max-width: 920px) {
       .left-panel { display: none; }
       .right-panel { width: 205px; }
     }
 
-    @media (max-width: 680px) {
-      body { height: auto; min-height: 100dvh; overflow-y: auto; overflow-x: hidden; }
+    @media (max-width: 768px) {
+      .mobile-tab-bar {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+      }
+      .mobile-tab-btn {
+        flex: 1;
+        height: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text2);
+        font-family: var(--font);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.13s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .mobile-tab-btn:hover {
+        color: var(--text);
+      }
+      .mobile-tab-btn.active {
+        color: #818cf8;
+        border-bottom-color: var(--accent);
+        background: rgba(99, 102, 241, 0.04);
+      }
 
+      .left-panel { display: none !important; }
       .workspace {
         flex-direction: column;
-        flex: none;
-        overflow: visible;
-      }
-      /* Canvas always shows first */
-      #canvas-area {
-        order: 0;
-        flex: none;
-        height: 56vw;
-        min-height: 280px;
-        max-height: 400px;
+        flex: 1;
         overflow: hidden;
+        position: relative;
       }
-      .right-panel {
-        order: 1;
-        flex: none;
-        width: 100%;
+
+      /* Default: Simulation tab active */
+      body:not(.tab-settings):not(.tab-analytics) #canvas-area,
+      body.tab-simulation #canvas-area {
+        display: block;
+      }
+      body:not(.tab-settings):not(.tab-analytics) #status-bar,
+      body.tab-simulation #status-bar {
+        display: flex;
+      }
+      body:not(.tab-settings):not(.tab-analytics) #timeline-bar,
+      body.tab-simulation #timeline-bar {
+        display: flex;
+      }
+      body:not(.tab-settings):not(.tab-analytics) .right-panel,
+      body.tab-simulation .right-panel {
+        display: none !important;
+      }
+
+      /* Settings Tab active */
+      body.tab-settings #canvas-area,
+      body.tab-settings #status-bar,
+      body.tab-settings #timeline-bar {
+        display: none !important;
+      }
+      body.tab-settings .right-panel {
+        display: block !important;
+        width: 100% !important;
         border-left: none;
-        border-top: 1px solid var(--border);
-        overflow: visible;
+        height: 100%;
+        overflow-y: auto;
       }
-      .left-panel { display: none; }
+      body.tab-settings .settings-group {
+        display: block;
+      }
+      body.tab-settings .analytics-group {
+        display: none !important;
+      }
 
-      .rp-body { display: grid; grid-template-columns: 1fr 1fr; }
-      .rp-sec  { padding: 12px; margin-bottom: 0; border-bottom: 1px solid var(--border); }
-      .rp-sec:nth-child(odd) { border-right: 1px solid var(--border); }
+      /* Analytics Tab active */
+      body.tab-analytics #canvas-area,
+      body.tab-analytics #status-bar,
+      body.tab-analytics #timeline-bar {
+        display: none !important;
+      }
+      body.tab-analytics .right-panel {
+        display: block !important;
+        width: 100% !important;
+        border-left: none;
+        height: 100%;
+        overflow-y: auto;
+      }
+      body.tab-analytics .settings-group {
+        display: none !important;
+      }
+      body.tab-analytics .analytics-group {
+        display: block;
+      }
 
-      #status-bar  { height: auto; min-height: 50px; flex-wrap: wrap; padding: 9px 13px; gap: 7px; }
-      .sb-rps      { margin-left: auto; }
-      #timeline-bar{ height: auto; min-height: 44px; flex-wrap: wrap; padding: 9px 13px; }
-      #timeline-dots { flex-wrap: wrap; gap: 4px; min-width: 0; }
-      #timeline-legend { flex-wrap: wrap; gap: 6px; }
+      /* Rotate Canvas layout in portrait orientation to landscape aspect */
+      @media (orientation: portrait) {
+        #canvas-area.rotated {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: calc(100vh - 48px - 44px - 50px - 44px);
+          height: 100vw;
+          transform: translate(-50%, -50%) rotate(90deg);
+          transform-origin: center;
+          z-index: 5;
+        }
+
+        #canvas-area.rotated #client-node,
+        #canvas-area.rotated #lb-node,
+        #canvas-area.rotated .server-node {
+          transform: translate(-50%, -50%) rotate(-90deg);
+        }
+      }
+
+      /* Compact nodes on mobile */
+      .client-box {
+        width: 80px;
+        padding: 8px 6px;
+      }
+      .cn-icon-wrap {
+        width: 32px;
+        height: 32px;
+        margin-bottom: 4px;
+      }
+      .cn-icon-wrap svg {
+        width: 16px;
+        height: 16px;
+      }
+      .cn-label {
+        font-size: 10px;
+      }
+
+      .lb-box {
+        width: 90px;
+        padding: 8px 6px;
+      }
+      .lb-icon-wrap {
+        width: 32px;
+        height: 32px;
+        margin-bottom: 4px;
+      }
+      .lb-icon-wrap svg {
+        width: 16px;
+        height: 16px;
+      }
+      .lb-title {
+        font-size: 10px;
+        margin-bottom: 0;
+      }
+      .lb-badge {
+        display: none !important;
+      }
+
+      .server-node {
+        width: 96px;
+        padding: 6px;
+      }
+      .sn-header {
+        margin-bottom: 0;
+        gap: 4px;
+      }
+      .sn-icon {
+        width: 28px;
+        height: 28px;
+      }
+      .sn-icon svg {
+        width: 14px;
+        height: 14px;
+      }
+      .sn-name {
+        font-size: 10px;
+      }
+      .sn-port {
+        display: none !important;
+      }
+      .sn-colorbar {
+        display: none !important;
+      }
+      .sn-actions {
+        display: none !important;
+      }
     }
 
     @media (max-width: 440px) {
       header h1 { display: none; }
       .hdr-btn .btn-text { display: none; }
       .hdr-btn { padding: 5px 7px; }
-      .rp-body { grid-template-columns: 1fr; }
-      .rp-sec:nth-child(odd) { border-right: none; }
       .modal-box, .modal-box.wide { width: calc(100vw - 24px); }
-      #canvas-area { height: 70vw; min-height: 240px; }
     }
   </style>
 </head>
@@ -546,6 +702,28 @@
     </button>
   </div>
 </header>
+
+<!-- Mobile Tabs Bar -->
+<div class="mobile-tab-bar">
+  <button class="mobile-tab-btn active" data-tab="simulation">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+      <polygon points="6 3 20 12 6 21 6 3"/>
+    </svg>
+    Simulation
+  </button>
+  <button class="mobile-tab-btn" data-tab="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    Settings
+  </button>
+  <button class="mobile-tab-btn" data-tab="analytics">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+    Analytics
+  </button>
+</div>
 
 <!-- Workspace -->
 <div class="workspace">
@@ -680,7 +858,7 @@
   <aside class="right-panel">
     <div class="rp-body">
 
-      <div class="rp-sec">
+      <div class="rp-sec settings-group">
         <div class="rp-sec-title">Simulation Settings</div>
 
         <label class="rp-label">Algorithm</label>
@@ -719,7 +897,7 @@
         </button>
       </div>
 
-      <div class="rp-sec">
+      <div class="rp-sec settings-group">
         <div class="rp-sec-title">Servers</div>
         <button class="btn-add spin" id="btn-spin-server">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -735,7 +913,7 @@
         </button>
       </div>
 
-      <div class="rp-sec">
+      <div class="rp-sec analytics-group">
         <div class="rp-sec-title">Statistics</div>
         <div class="stat-row"><span class="sr-key">Total Requests</span><span class="sr-val blue"  id="stat-total">0</span></div>
         <div class="stat-row"><span class="sr-key">Completed</span>     <span class="sr-val green" id="stat-completed">0</span></div>
@@ -745,7 +923,7 @@
         <div class="stat-row"><span class="sr-key">Servers Down</span>  <span class="sr-val red"   id="stat-dead">0</span></div>
       </div>
 
-      <div class="rp-sec">
+      <div class="rp-sec analytics-group">
         <div class="rp-sec-title">Server Utilization</div>
         <div id="util-list"><div style="font-size:11px;color:var(--muted)">No servers yet</div></div>
       </div>

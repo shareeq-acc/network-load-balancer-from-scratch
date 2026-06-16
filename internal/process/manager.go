@@ -31,7 +31,7 @@ func NewManager(startPort int) *Manager {
 	return &Manager{
 		processes:   make(map[int]*ServerProcess),
 		nextPort:    startPort,
-		debugOutput: false, // Set to true to see server logs
+		debugOutput: true, // Set to true to see server logs
 	}
 }
 
