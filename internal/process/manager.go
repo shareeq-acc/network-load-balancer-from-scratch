@@ -52,8 +52,16 @@ func (m *Manager) SpinUpServer() (*ServerProcess, error) {
 		}
 	}
 
-	// Start the backend server process
-	cmd := exec.Command("go", "run", "backend/server.go")
+	// Check if a precompiled backend-server binary exists (e.g. in docker container or local build)
+	var cmd *exec.Cmd
+	if _, err := os.Stat("./backend-server"); err == nil {
+		cmd = exec.Command("./backend-server")
+	} else if _, err := os.Stat("/app/backend-server"); err == nil {
+		cmd = exec.Command("/app/backend-server")
+	} else {
+		// Fall back to running with Go SDK (local development)
+		cmd = exec.Command("go", "run", "backend/server.go")
+	}
 
 	// CRITICAL FIX: Copy parent environment and add PORT
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", port))
@@ -81,8 +89,8 @@ func (m *Manager) SpinUpServer() (*ServerProcess, error) {
 
 	log.Printf("Started backend server on port %d (PID: %d)", port, cmd.Process.Pid)
 
-	// Wait for the server to actually start listening
-	if err := m.waitForServer(url, 5*time.Second); err != nil {
+	// Wait for the server to actually start listening (increased timeout for container compilation fallback)
+	if err := m.waitForServer(url, 15*time.Second); err != nil {
 		// Server didn't start properly, kill the process
 		cmd.Process.Kill()
 		delete(m.processes, port)
