@@ -88,6 +88,10 @@ func (bp *BackendPool) AddBackend(backend Backend) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 
+	if len(bp.backends) >= 10 {
+		return
+	}
+
 	bp.backends = append(bp.backends, backend)
 	bp.healthy[backend.URL] = true
 	bp.consecutiveFails[backend.URL] = 0

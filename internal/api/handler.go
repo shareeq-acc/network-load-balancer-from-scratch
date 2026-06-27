@@ -102,6 +102,11 @@ func (h *Handler) AddServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(h.pool.GetAllBackends()) >= 10 {
+		http.Error(w, "Maximum limit of 10 servers reached", http.StatusBadRequest)
+		return
+	}
+
 	var req struct {
 		URL       string `json:"url"`
 		Weight    int    `json:"weight"`
@@ -234,6 +239,11 @@ func (h *Handler) SetAlgorithm(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) SpinUpServer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if len(h.pool.GetAllBackends()) >= 10 {
+		http.Error(w, "Maximum limit of 10 servers reached", http.StatusBadRequest)
 		return
 	}
 

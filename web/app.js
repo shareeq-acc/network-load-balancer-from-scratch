@@ -708,6 +708,7 @@ document.getElementById('btn-pause').addEventListener('click', () => {
 });
 
 document.getElementById('btn-add-server').addEventListener('click', () => {
+  if (servers.length >= 10) { toast('Cannot add more than 10 servers'); return; }
   document.getElementById('modal-url').value    = `http://localhost:${8080 + serverCounter + 1}`;
   document.getElementById('modal-weight').value = '1';
   document.getElementById('modal-overlay').classList.add('open');
@@ -715,6 +716,7 @@ document.getElementById('btn-add-server').addEventListener('click', () => {
 });
 
 document.getElementById('btn-spin-server').addEventListener('click', async () => {
+  if (servers.length >= 10) { toast('Cannot add more than 10 servers'); return; }
   const btn = document.getElementById('btn-spin-server');
   btn.disabled = true; btn.textContent = '⏳ Starting…';
   const data = await spinUpServer(1);
