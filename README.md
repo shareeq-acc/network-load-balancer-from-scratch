@@ -45,8 +45,8 @@ A production-ready HTTP load balancer built in Go with a modern web dashboard fo
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/shareeq-acc/load-balancer.git
-cd load-balancer
+git clone https://github.com/shareeq-acc/network-load-balancer-from-scratch.git
+cd network-load-balancer-from-scratch
 ```
 
 2. **Install dependencies**
