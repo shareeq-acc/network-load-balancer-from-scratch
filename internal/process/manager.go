@@ -89,6 +89,24 @@ func (m *Manager) SpinUpServer() (*ServerProcess, error) {
 
 	log.Printf("Started backend server on port %d (PID: %d)", port, cmd.Process.Pid)
 
+	// Reap the child when it exits, however it exits.
+	//
+	// Killing a process does not collect it: until someone calls Wait, the
+	// kernel keeps the entry alive as a zombie holding its exit status. On a
+	// desktop that is invisible because the shell's init eventually clears it,
+	// but in a container this process is effectively init, nothing else is
+	// going to collect anything, and every server stopped leaves one behind —
+	// verified: stop one backend and `ps` inside the container shows a
+	// `Z  backend-server`. A long session slowly fills the process table.
+	//
+	// Waiting in a goroutine rather than at the kill site covers crashes too,
+	// which is the case nobody remembers to handle.
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			log.Printf("Backend server on port %d exited: %v", port, err)
+		}
+	}()
+
 	// Wait for the server to actually start listening (increased timeout for container compilation fallback)
 	if err := m.waitForServer(url, 15*time.Second); err != nil {
 		// Server didn't start properly, kill the process

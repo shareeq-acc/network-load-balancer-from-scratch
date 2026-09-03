@@ -1,0 +1,16 @@
+# Production configuration, mounted over config.yml in the container.
+#
+# The backends list is deliberately EMPTY.
+#
+# config.yml seeds three static backends on 8081-8083 for local development,
+# where you would start them by hand. In the container nothing is listening on
+# those ports until something spawns it, so they would start life unhealthy —
+# and worse, the process manager hands out ports from 8081 upward, so the first
+# server you spin up lands on 8081 and gets added to the pool a *second* time,
+# beside the dead static entry with the same URL.
+#
+# Starting empty is also the honest demo: nothing to serve until you spin a
+# server up from the dashboard, which is the feature.
+algorithm: round-robin
+
+backends: []

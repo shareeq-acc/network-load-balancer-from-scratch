@@ -1,0 +1,47 @@
+# Go load balancer — a live demo of itself.
+#
+# **On ports, and why there are none.** The balancer starts backend servers as
+# child processes of itself, on 8081, 8082, 8083 and upward, and proxies to
+# them on 127.0.0.1. All of that happens inside this container's own network
+# namespace, so those ports are invisible to the host and cannot collide with
+# anything else on the server — including the other four projects. Nothing
+# needs publishing: the shared Caddy reaches the dashboard on port 8080 by
+# container name over the `edge` network.
+#
+# It also means the balancer is free to use as many ports as it likes. The only
+# ceiling is its own limit of ten servers.
+#
+#   docker compose -f docker-compose.prod.yml up -d
+
+name: golb
+
+services:
+  lb:
+    image: ${LB_IMAGE:-ghcr.io/shareeq-acc/golang-load-balancer:main}
+    container_name: golb
+    restart: unless-stopped
+
+    # A real init as PID 1, to reap anything the balancer leaves orphaned if it
+    # is killed mid-spawn.
+    #
+    # Note this is a backstop, not the fix: tini only collects processes that
+    # have been re-parented to PID 1, which happens when their parent dies. A
+    # backend stopped while the balancer is running is still the balancer's
+    # child, and only the balancer can reap it — which it now does, by waiting
+    # on each child in a goroutine. Both together mean no zombies either way.
+    init: true
+
+    # Empty backends list, so the pool starts clean and everything in it was
+    # spun up deliberately. See the file for why.
+    volumes:
+      - ./config.docker.yml:/app/config.yml:ro
+
+    networks:
+      - edge
+
+    # Ten backends plus the balancer, all tiny Go binaries.
+    mem_limit: 256m
+
+networks:
+  edge:
+    external: true

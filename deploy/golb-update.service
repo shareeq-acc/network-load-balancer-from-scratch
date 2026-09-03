@@ -1,0 +1,12 @@
+[Unit]
+Description=Deploy whatever CI last built for golb
+Documentation=https://github.com/shareeq-acc/golb/blob/main/docs/deploy.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+Environment=PROJECT_DIR=/srv/golb
+ExecStart=/usr/local/bin/golb-update
+# A deploy that hangs must not block the next one forever.
+TimeoutStartSec=900
