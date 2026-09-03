@@ -50,6 +50,13 @@ jobs:
         with:
           context: .
           push: true
+          # Links the package to this repository, so it appears on the repo
+          # page and in its releases rather than only under the account's
+          # Packages tab — and so anyone holding the image can find the source.
+          # Without it a private package is published but effectively hidden.
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           tags: |
             ${{ env.IMAGE }}:main
             ${{ env.IMAGE }}:${{ github.sha }}
