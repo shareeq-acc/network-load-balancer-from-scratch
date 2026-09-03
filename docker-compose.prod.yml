@@ -31,10 +31,20 @@ services:
     # on each child in a goroutine. Both together mean no zombies either way.
     init: true
 
-    # Empty backends list, so the pool starts clean and everything in it was
-    # spun up deliberately. See the file for why.
+    environment:
+      CONFIG_PATH: /etc/golb/config.yml
+
+    # The DIRECTORY, not the file. Docker binds a single file by its inode, and
+    # `git pull` replaces files rather than editing them — so a file mount
+    # keeps serving the version that existed when the container started, and
+    # every config change pulled afterwards is silently ignored while every
+    # check you would run reads the host's copy. Cost an evening on the shared
+    # proxy before it was found there.
+    #
+    # The config itself has an empty backends list, so the pool starts clean
+    # and everything in it was spun up deliberately. See the file for why.
     volumes:
-      - ./config.docker.yml:/app/config.yml:ro
+      - ./deploy/config:/etc/golb:ro
 
     networks:
       - edge

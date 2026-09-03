@@ -1,4 +1,10 @@
-# Production configuration, mounted over config.yml in the container.
+# Production configuration.
+#
+# Mounted as a DIRECTORY (deploy/config -> /etc/golb) and selected with
+# CONFIG_PATH, rather than laid over /app/config.yml as a single file. Docker
+# binds a file by its inode and `git pull` replaces files rather than editing
+# them, so a file mount keeps serving whatever existed when the container
+# started and silently ignores everything pulled afterwards.
 #
 # The backends list is deliberately EMPTY.
 #

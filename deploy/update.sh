@@ -47,8 +47,13 @@ before_ref="$(git rev-parse HEAD 2>/dev/null || true)"
 if [ -d .git ]; then
     if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
         log "working tree has local changes — not pulling the repository"
-    elif ! git pull --quiet --ff-only 2>/dev/null; then
-        log "git pull failed — continuing with the files already on disk"
+    elif ! git pull --quiet --ff-only 2>&1; then
+        # Loud, and the error kept rather than swallowed. Carrying on quietly
+        # means the compose file and the mounted config silently stop updating
+        # while the image keeps going — the exact split-brain the ref
+        # comparison below exists to catch, hidden behind a line that reads
+        # like a routine notice.
+        log "GIT PULL FAILED — compose and config are NOT being updated"
     fi
 fi
 
@@ -73,12 +78,24 @@ fi
 
 log "new images, deploying"
 
+# A config-only change needs the container replaced, not merely brought up.
+# The balancer reads its configuration once, at start, and `up -d` leaves an
+# unchanged container running — so a commit that only edits deploy/config would
+# land on disk, be visible inside the container, and still not take effect.
+recreate=""
+if [ "$before_ref" != "$after_ref" ] && [ -n "$before_ref" ]; then
+    if ! git diff --quiet "$before_ref" "$after_ref" -- deploy/config 2>/dev/null; then
+        log "configuration changed — recreating the container"
+        recreate="--force-recreate"
+    fi
+fi
+
 # No database, so no migration step. Restarting does drop any backends that
 # were spun up by hand, which is the intended behaviour: they are demo state,
 # not data.
 # --no-build because the images came from the registry; without it compose
 # would notice the build: stanza and start compiling on the VPS.
-docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
+docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans $recreate
 
 # Only images no container refers to. Left alone, a fortnight of daily builds
 # is a full disk, and a full disk on this box stops Postgres before it stops

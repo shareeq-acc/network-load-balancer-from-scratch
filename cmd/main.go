@@ -24,11 +24,26 @@ var pool *balancer.BackendPool
 var apiHandler *api.Handler
 var lbMu sync.RWMutex
 
+// configPath is where the configuration is read from.
+//
+// Overridable because the container mounts its config from a directory rather
+// than copying a file over the one baked into the image. Docker binds a single
+// file by its inode, and `git pull` replaces files rather than editing them —
+// so a file mount keeps serving the version that existed when the container
+// started, no matter what is pulled afterwards. A directory mount is seen.
+func configPath() string {
+	if path := os.Getenv("CONFIG_PATH"); path != "" {
+		return path
+	}
+	return "config.yml"
+}
+
 func main() {
 	// Load configuration
-	cfg, err := config.LoadConfig("config.yml")
+	path := configPath()
+	cfg, err := config.LoadConfig(path)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatalf("Failed to load config from %s: %v", path, err)
 	}
 
 	// Convert config backends to balancer backends
